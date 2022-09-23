@@ -1,12 +1,11 @@
-
 const bcrypt = require('bcrypt');
 const express = require('express');
 const app = express();
 const jwt = require('jsonwebtoken');
 const { User } = require('./db');
 
+const JWT_SECRET = process.env.JWT_SECRET;
 const SALT_COUNT = 12;
-//const {JWT_SECRET = 'abc123'} = process.env;
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
@@ -28,18 +27,18 @@ app.get('/', async (req, res, next) => {
 // Verifies token with jwt.verify and sets req.user
 // TODO - Create authentication middleware
 
-// const setUser = async (req, res, next) => {
-//   const auth = req.header("Authorization");
-//   if (!auth) {
-//     res.sendStatus(401);
-//   } else {
-//     const [, token] = auth.split(" ");
-//     const decrypt = jwt.verify(token, JWT_SECRET);
-//     const user = await User.findOne({ where: { username: decrypt.username } });
-//     req.user = user;
-//     next();
-//   }
-// };
+const setUser = async (req, res, next) => {
+  const auth = req.header("Authorization");
+  if (!auth) {
+    res.sendStatus(401);
+  } else {
+    const [, token] = auth.split(" ");
+    const decrypt = jwt.verify(token, JWT_SECRET);
+    const user = await User.findOne({ where: { username: decrypt.username } });
+    req.user = user;
+    next();
+  }
+};
 
 // POST /register
 // OPTIONAL - takes req.body of {username, password} and creates a new user with the hashed password
@@ -61,7 +60,7 @@ app.post("/register", setUser, async (req, res) => {
 
 // POST /login
 // OPTIONAL - takes req.body of {username, password}, finds user by username, and compares the password with the hashed version from the DB
-app.post("/login", setUser, async (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findAll({
     where: { username: username },
